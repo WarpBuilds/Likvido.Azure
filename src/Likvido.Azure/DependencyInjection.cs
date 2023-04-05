@@ -14,21 +14,36 @@ namespace Likvido.Azure
 {
     public static class DependencyInjection
     {
+        [Obsolete("Use AddAzureEventGridServices(this IServiceCollection services, EventGridConfiguration eventGridConfiguration) instead")]
         public static void AddAzureEventGridServices(this IServiceCollection services, IConfiguration configuration, string eventGridSource = null)
         {
+            services.AddAzureEventGridServices(new EventGridConfiguration
+            {
+                Source = eventGridSource ?? configuration.GetValue<string>("EventGrid:Source"),
+                Topic = configuration.GetValue<string>("EventGrid:Topic"),
+                AccessKey = configuration.GetValue<string>("EventGrid:AccessKey")
+            });
+        }
+
+        public static void AddAzureEventGridServices(this IServiceCollection services, EventGridConfiguration eventGridConfiguration)
+        {
+            if (eventGridConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(eventGridConfiguration));
+            }
+
             services.AddAzureClients(builder =>
             {
                 builder.AddEventGridPublisherClient(
-                    new Uri(configuration.GetValue<string>("EventGrid:Topic")),
-                    new AzureKeyCredential(configuration.GetValue<string>("EventGrid:AccessKey")));
+                    new Uri(eventGridConfiguration.Topic),
+                    new AzureKeyCredential(eventGridConfiguration.AccessKey));
             });
 
-            eventGridSource = eventGridSource ?? configuration.GetValue<string>("EventGrid:Source");
             services.AddSingleton<IEventGridService>(sp =>
                 new EventGridService(
                     sp.GetService<EventGridPublisherClient>(),
                     sp.GetService<ILogger<EventGridService>>(),
-                    eventGridSource));
+                    eventGridConfiguration.Source));
         }
 
         [Obsolete("Use AddAzureStorageServices(this IServiceCollection services, StorageConfiguration storageConfiguration) instead")]
