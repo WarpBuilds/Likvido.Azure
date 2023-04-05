@@ -4,18 +4,17 @@ namespace Likvido.Azure.Storage
 {
     public class AzureStorageServiceFactory : IAzureStorageServiceFactory
     {
-        private readonly ConcurrentDictionary<string, IAzureStorageService> _storageServices = new ConcurrentDictionary<string, IAzureStorageService>();
+        private readonly ConcurrentDictionary<string, IAzureStorageService> storageServices = new ConcurrentDictionary<string, IAzureStorageService>();
+        private readonly StorageConfiguration storageConfiguration;
 
-        private readonly AzureSettings _azureSettings;
-
-        public AzureStorageServiceFactory(AzureSettings azureSettings)
+        public AzureStorageServiceFactory(StorageConfiguration storageConfiguration)
         {
-            _azureSettings = azureSettings;
+            this.storageConfiguration = storageConfiguration;
         }
 
         public IAzureStorageService Create(string containerName)
         {
-            return _storageServices.GetOrAdd(containerName, name => new AzureStorageService(_azureSettings, containerName));
+            return storageServices.GetOrAdd(containerName, name => new AzureStorageService(storageConfiguration, containerName));
         }
     }
 }

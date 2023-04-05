@@ -14,46 +14,85 @@ namespace Likvido.Azure
 {
     public static class DependencyInjection
     {
+        [Obsolete("Use AddAzureEventGridServices(this IServiceCollection services, EventGridConfiguration eventGridConfiguration) instead")]
         public static void AddAzureEventGridServices(this IServiceCollection services, IConfiguration configuration, string eventGridSource = null)
         {
+            services.AddAzureEventGridServices(new EventGridConfiguration
+            {
+                Source = eventGridSource ?? configuration.GetValue<string>("EventGrid:Source"),
+                Topic = configuration.GetValue<string>("EventGrid:Topic"),
+                AccessKey = configuration.GetValue<string>("EventGrid:AccessKey")
+            });
+        }
+
+        public static void AddAzureEventGridServices(this IServiceCollection services, EventGridConfiguration eventGridConfiguration)
+        {
+            if (eventGridConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(eventGridConfiguration));
+            }
+
             services.AddAzureClients(builder =>
             {
                 builder.AddEventGridPublisherClient(
-                    new Uri(configuration.GetValue<string>("EventGrid:Topic")),
-                    new AzureKeyCredential(configuration.GetValue<string>("EventGrid:AccessKey")));
+                    new Uri(eventGridConfiguration.Topic),
+                    new AzureKeyCredential(eventGridConfiguration.AccessKey));
             });
 
-            eventGridSource = eventGridSource ?? configuration.GetValue<string>("EventGrid:Source");
             services.AddSingleton<IEventGridService>(sp =>
                 new EventGridService(
                     sp.GetService<EventGridPublisherClient>(),
                     sp.GetService<ILogger<EventGridService>>(),
-                    eventGridSource));
+                    eventGridConfiguration.Source));
         }
 
+        [Obsolete("Use AddAzureStorageServices(this IServiceCollection services, StorageConfiguration storageConfiguration) instead")]
         public static void AddAzureStorageServices(this IServiceCollection services, IConfiguration configuration)
         {
-            var azureSettings = new AzureSettings
+            services.AddAzureStorageServices(new StorageConfiguration
             {
-                StorageConnectionString = configuration.GetValue<string>("StorageConnectionString"),
-                StorageAlternateUri = configuration.GetValue<string>("AzureStorageAlternateUri"),
-            };
-            services.AddSingleton(sp => azureSettings);
-
-            services.AddAzureClients(builder =>
-            {
-                builder.AddBlobServiceClient(azureSettings.StorageConnectionString);
+                ConnectionString = configuration.GetValue<string>("StorageConnectionString"),
+                AlternateUri = configuration.GetValue<string>("AzureStorageAlternateUri")
             });
-            services.AddSingleton<IAzureStorageServiceFactory>(_ => new AzureStorageServiceFactory(azureSettings));
         }
 
-        public static void AddAzureQueueServices(this IServiceCollection services, IConfiguration configuration)
+        public static void AddAzureStorageServices(this IServiceCollection services, StorageConfiguration storageConfiguration)
         {
+            if (storageConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(storageConfiguration));
+            }
+
             services.AddAzureClients(builder =>
             {
-                builder.AddQueueServiceClient(configuration.GetValue<string>("StorageConnectionString"))
-                .ConfigureOptions(o => o.MessageEncoding = QueueMessageEncoding.Base64); ;
+                builder.AddBlobServiceClient(storageConfiguration.ConnectionString);
             });
+
+            services.AddSingleton<IAzureStorageServiceFactory>(_ => new AzureStorageServiceFactory(storageConfiguration));
+        }
+
+        [Obsolete("Use AddAzureQueueServices(this IServiceCollection services, QueueConfiguration queueConfiguration) instead")]
+        public static void AddAzureQueueServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddAzureQueueServices(new QueueConfiguration
+            {
+                ConnectionString = configuration.GetValue<string>("StorageConnectionString")
+            });
+        }
+
+        public static void AddAzureQueueServices(this IServiceCollection services, QueueConfiguration queueConfiguration)
+        {
+            if (queueConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(queueConfiguration));
+            }
+
+            services.AddAzureClients(builder =>
+            {
+                builder.AddQueueServiceClient(queueConfiguration.ConnectionString)
+                    .ConfigureOptions(o => o.MessageEncoding = QueueMessageEncoding.Base64);
+            });
+
             services.AddSingleton<IQueueService, QueueService>();
         }
     }
