@@ -31,20 +31,29 @@ namespace Likvido.Azure
                     eventGridSource));
         }
 
+        [Obsolete("Use AddAzureStorageServices(this IServiceCollection services, StorageConfiguration storageConfiguration) instead")]
         public static void AddAzureStorageServices(this IServiceCollection services, IConfiguration configuration)
         {
-            var azureSettings = new AzureSettings
+            services.AddAzureStorageServices(new StorageConfiguration
             {
-                StorageConnectionString = configuration.GetValue<string>("StorageConnectionString"),
-                StorageAlternateUri = configuration.GetValue<string>("AzureStorageAlternateUri"),
-            };
-            services.AddSingleton(sp => azureSettings);
+                ConnectionString = configuration.GetValue<string>("StorageConnectionString"),
+                AlternateUri = configuration.GetValue<string>("AzureStorageAlternateUri")
+            });
+        }
+
+        public static void AddAzureStorageServices(this IServiceCollection services, StorageConfiguration storageConfiguration)
+        {
+            if (storageConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(storageConfiguration));
+            }
 
             services.AddAzureClients(builder =>
             {
-                builder.AddBlobServiceClient(azureSettings.StorageConnectionString);
+                builder.AddBlobServiceClient(storageConfiguration.ConnectionString);
             });
-            services.AddSingleton<IAzureStorageServiceFactory>(_ => new AzureStorageServiceFactory(azureSettings));
+
+            services.AddSingleton<IAzureStorageServiceFactory>(_ => new AzureStorageServiceFactory(storageConfiguration));
         }
 
         [Obsolete("Use AddAzureQueueServices(this IServiceCollection services, QueueConfiguration queueConfiguration) instead")]
