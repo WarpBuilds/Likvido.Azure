@@ -103,7 +103,8 @@ namespace Likvido.Azure.Storage
                     return Set(key, content, overwrite, ++iteration, metadata);
                 }
             }
-            return blob.CustomUri(storageConfiguration.AlternateUri);
+
+            return blob.Uri;
         }
 
         public async Task<MemoryStream> GetAsync(Uri uri)
@@ -202,7 +203,7 @@ namespace Likvido.Azure.Storage
                 await blob.SetHttpHeadersAsync(headers);
             }
 
-            return blob.CustomUri(storageConfiguration.AlternateUri);
+            return blob.Uri;
         }
 
         public async Task<string> GetBlobSasUriAsync(string url)
@@ -225,26 +226,6 @@ namespace Likvido.Azure.Storage
             blobSasBuilder.SetPermissions(BlobSasPermissions.Read);
             var sasBlobToken = blobClient.GenerateSasUri(blobSasBuilder);
             return sasBlobToken.AbsoluteUri;
-        }
-    }
-
-    public static class BlobExtensions
-    {
-        public static Uri CustomUri(this BlobClient x, string alternateUri)
-        {
-            var uri = x.Uri.ToString();
-            if (!string.IsNullOrEmpty(alternateUri))
-            {
-                uri = uri.Replace(x.Uri.Authority, alternateUri);
-            }
-
-            var properties = x.GetProperties()?.Value;
-            if (properties == null)
-            {
-                return new Uri(uri);
-            }
-
-            return new Uri(uri + "?t=" + properties.ETag.ToString().Trim('\"'));
         }
     }
 }

@@ -5,7 +5,6 @@ namespace Likvido.Azure.Storage
     public class StorageConfiguration
     {
         public string ConnectionString { get; set; }
-        public string AlternateUri { get; set; }
 
         public (string StorageAccountName, string StorageAccountKey) GetStorageAccountInfo()
         {
