@@ -132,6 +132,28 @@ namespace Likvido.Azure.Storage
             }
         }
 
+        public async Task<IDictionary<string, string>> GetMetadataAsync(string key)
+        {
+            return await GetMetadataAsync(container.GetBlobClient(key)).ConfigureAwait(false);
+        }
+
+        public async Task<IDictionary<string, string>> GetMetadataAsync(Uri uri)
+        {
+            if (uri.AbsolutePath.Contains(container.Name))
+            {
+                return await GetMetadataAsync(new BlobClient(uri)).ConfigureAwait(false);
+            }
+
+            return null;
+        }
+
+        public async Task<IDictionary<string, string>> GetMetadataAsync(BlobClient blob)
+        {
+            var blobProperties = await blob.GetPropertiesAsync().ConfigureAwait(false);
+
+            return blobProperties.Value.Metadata;
+        }
+
         public async Task<Uri> RenameAsync(string tempFileName, string fileName)
         {
             var existingBlob = container.GetBlobClient(tempFileName);
