@@ -7,6 +7,7 @@ using Azure;
 using Azure.Storage.Queues;
 using Newtonsoft.Json;
 using Polly;
+using Polly.Retry;
 
 namespace Likvido.Azure.Queue
 {
@@ -48,26 +49,34 @@ namespace Likvido.Azure.Queue
             TimeSpan? timeToLive = null,
             CancellationToken cancellationToken = default)
         {
-            await Policy
-                .Handle<Exception>()
-                .WaitAndRetryAsync(3, attempt => TimeSpan.FromSeconds(5 * Math.Pow(2, attempt)))
-                .ExecuteAsync(async () =>
+            ResiliencePipeline pipeline = new ResiliencePipelineBuilder()
+                .AddRetry(new RetryStrategyOptions
                 {
-                    var queue = _queueServiceClient.GetQueueClient(queueName);
-                    try
-                    {
-                        await queue.SendMessageAsync(
-                                JsonConvert.SerializeObject(message),
-                                timeToLive: timeToLive ?? TimeSpan.FromSeconds(-1), // Using -1 means that the message does not expire.
-                                visibilityTimeout: initialVisibilityDelay,
-                                cancellationToken: cancellationToken)
-                            .ConfigureAwait(false);
-                    }
-                    catch (RequestFailedException e) when (e.Status == (int)HttpStatusCode.NotFound)
-                    {
-                        await queue.CreateIfNotExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-                    }
+                    ShouldHandle = new PredicateBuilder().Handle<Exception>(),
+                    Delay = TimeSpan.FromSeconds(5),
+                    MaxRetryAttempts = 3,
+                    BackoffType = DelayBackoffType.Exponential
                 })
+                .Build();
+
+            await pipeline.ExecuteAsync(async _ =>
+                    {
+                        var queue = _queueServiceClient.GetQueueClient(queueName);
+                        try
+                        {
+                            await queue.SendMessageAsync(
+                                    JsonConvert.SerializeObject(message),
+                                    timeToLive: timeToLive ?? TimeSpan.FromSeconds(-1), // Using -1 means that the message does not expire.
+                                    visibilityTimeout: initialVisibilityDelay,
+                                    cancellationToken: cancellationToken)
+                                .ConfigureAwait(false);
+                        }
+                        catch (RequestFailedException e) when (e.Status == (int)HttpStatusCode.NotFound)
+                        {
+                            await queue.CreateIfNotExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                        }
+                    },
+                    cancellationToken)
                 .ConfigureAwait(false);
         }
     }
