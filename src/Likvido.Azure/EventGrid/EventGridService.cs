@@ -6,7 +6,8 @@ using Azure.Messaging;
 using Azure.Messaging.EventGrid;
 using Microsoft.Extensions.Logging;
 using Polly;
-using Polly.Wrap;
+using Polly.Fallback;
+using Polly.Retry;
 
 namespace Likvido.Azure.EventGrid
 {
@@ -32,32 +33,39 @@ namespace Likvido.Azure.EventGrid
 
             var cloudEvents = events.Select(x => new CloudEvent(_eventGridSource, x.GetEventType(), x));
 
-            await GetRetryPolicyAsync()
-                .ExecuteAsync(async () => await _client.SendEventsAsync(cloudEvents).ConfigureAwait(false))
+            await GetResiliencePipeline()
+                .ExecuteAsync(async cancellationToken => await _client.SendEventsAsync(cloudEvents, cancellationToken).ConfigureAwait(false))
                 .ConfigureAwait(false);
         }
 
-        private AsyncPolicyWrap<Response> GetRetryPolicyAsync()
-        {
-            var retryPolicy = Policy
-              .Handle<Exception>()
-              .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)),
-              onRetry: (e, sleepDuration, attemptNumber, context) =>
-              {
-                  _logger.LogError(e, "Error while publishing events to Event Grid. Retrying in {SleepDuration}. Attempt number {AttemptNumber}", sleepDuration, attemptNumber);
-              });
-
-            var fallbackPolicy = Policy<Response>
-              .Handle<Exception>()
-              .FallbackAsync(
-                fallbackValue: null,
-                onFallbackAsync: e =>
+        private ResiliencePipeline<Response> GetResiliencePipeline() =>
+            new ResiliencePipelineBuilder<Response>()
+                .AddRetry(new RetryStrategyOptions<Response>
                 {
-                    _logger.LogCritical(e.Exception, "Failed to publish events to Event Grid after multiple retries.");
-                    throw e.Exception;
-                });
+                    ShouldHandle = new PredicateBuilder<Response>().Handle<Exception>(),
+                    Delay = TimeSpan.FromSeconds(3),
+                    MaxRetryAttempts = 3,
+                    BackoffType = DelayBackoffType.Exponential,
+                    OnRetry = args =>
+                    {
+                        _logger.LogError(args.Outcome.Exception, "Error while publishing events to Event Grid. Retrying in {SleepDuration}. Attempt number {AttemptNumber}", args.RetryDelay.ToString("g"), args.AttemptNumber);
+                        return default;
+                    }
+                })
+                .AddFallback(new FallbackStrategyOptions<Response>
+                {
+                    ShouldHandle = new PredicateBuilder<Response>().Handle<Exception>(),
+                    OnFallback = args =>
+                    {
+                        if (args.Outcome.Exception == null)
+                        {
+                            return default;
+                        }
 
-            return fallbackPolicy.WrapAsync(retryPolicy);
-        }
+                        _logger.LogCritical(args.Outcome.Exception, "Failed to publish events to Event Grid after multiple retries");
+                        throw args.Outcome.Exception;
+                    }
+                })
+                .Build();
     }
 }
