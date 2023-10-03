@@ -55,6 +55,7 @@ namespace Likvido.Azure.EventGrid
                 .AddFallback(new FallbackStrategyOptions<Response>
                 {
                     ShouldHandle = new PredicateBuilder<Response>().Handle<Exception>(),
+                    FallbackAction = args => default,
                     OnFallback = args =>
                     {
                         if (args.Outcome.Exception == null)
