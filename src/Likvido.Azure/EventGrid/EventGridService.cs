@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Azure;
@@ -31,10 +32,43 @@ namespace Likvido.Azure.EventGrid
                 return;
             }
 
-            var cloudEvents = events.Select(x => new CloudEvent(_eventGridSource, x.GetEventType(), x));
+            const int sizeLimit = 1000000;  // Azure Event Grid size limit in bytes
+            var currentBatch = new List<CloudEvent>();
+            var currentBatchSize = 0;
 
+            foreach (var eventItem in events)
+            {
+                var cloudEvent = new CloudEvent(_eventGridSource, eventItem.GetEventType(), eventItem);
+                var eventSize = GetEventSize(cloudEvent);
+
+                if (currentBatchSize + eventSize > sizeLimit)
+                {
+                    // Send current batch and start a new one
+                    await SendBatchAsync(currentBatch).ConfigureAwait(false);
+                    currentBatch.Clear();
+                    currentBatchSize = 0;
+                }
+
+                currentBatch.Add(cloudEvent);
+                currentBatchSize += eventSize;
+            }
+
+            // Send any remaining events in the final batch
+            if (currentBatch.Any())
+            {
+                await SendBatchAsync(currentBatch).ConfigureAwait(false);
+            }
+        }
+
+        private static int GetEventSize(CloudEvent cloudEvent)
+        {
+            return cloudEvent.Data?.ToArray().Length ?? 0;
+        }
+
+        private async Task SendBatchAsync(List<CloudEvent> batch)
+        {
             await GetResiliencePipeline()
-                .ExecuteAsync(async cancellationToken => await _client.SendEventsAsync(cloudEvents, cancellationToken).ConfigureAwait(false))
+                .ExecuteAsync(async cancellationToken => await _client.SendEventsAsync(batch, cancellationToken).ConfigureAwait(false))
                 .ConfigureAwait(false);
         }
 
