@@ -32,14 +32,17 @@ namespace Likvido.Azure.EventGrid
                 return;
             }
 
-            const int sizeLimit = 1000000;  // Azure Event Grid size limit in bytes
+            // The max size for the total request is 1536000 bytes.
+            // We initially tried setting our limit to 1000000 bytes, but we still received an error,
+            // so we lowered it to 500000 bytes.
+            const int sizeLimit = 500000;
             var currentBatch = new List<CloudEvent>();
             var currentBatchSize = 0;
 
             foreach (var eventItem in events)
             {
                 var cloudEvent = new CloudEvent(_eventGridSource, eventItem.GetEventType(), eventItem);
-                var eventSize = GetEventSize(cloudEvent);
+                var eventSize = cloudEvent.Data?.ToArray().Length ?? 0;
 
                 if (currentBatchSize + eventSize > sizeLimit)
                 {
@@ -58,11 +61,6 @@ namespace Likvido.Azure.EventGrid
             {
                 await SendBatchAsync(currentBatch).ConfigureAwait(false);
             }
-        }
-
-        private static int GetEventSize(CloudEvent cloudEvent)
-        {
-            return cloudEvent.Data?.ToArray().Length ?? 0;
         }
 
         private async Task SendBatchAsync(List<CloudEvent> batch)
