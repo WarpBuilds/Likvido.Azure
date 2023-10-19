@@ -15,7 +15,7 @@ public class EventGridServiceTests
     [InlineData(5000, 1)]
     [InlineData(10000, 2)]
     [InlineData(15000, 3)]
-    [InlineData(20000, 3)]
+    [InlineData(20000, 7)]
     public async Task PublishAsync_WhenSendingManyEvents_TheEventsShouldBeSplitIntoBatches(int eventCount, int batches)
     {
         // Arrange
