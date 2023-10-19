@@ -64,7 +64,7 @@ namespace Likvido.Azure.EventGrid
         {
             // This is a rough estimate of the overhead of the CloudEvent object
             // It was found via experimentation on calling the actual API with various event sizes
-            const int eventOverhead = 200;
+            const int eventOverhead = 300;
             var actualEventSize = cloudEvent.Data?.ToArray().Length ?? 0;
 
             return actualEventSize + eventOverhead;
