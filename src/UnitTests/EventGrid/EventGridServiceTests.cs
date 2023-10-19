@@ -12,10 +12,10 @@ public class EventGridServiceTests
 {
     [Theory]
     [InlineData(1, 1)]
-    [InlineData(5000, 1)]
-    [InlineData(10000, 2)]
-    [InlineData(15000, 3)]
-    [InlineData(20000, 4)]
+    [InlineData(5000, 5)]
+    [InlineData(10000, 6)]
+    [InlineData(15000, 7)]
+    [InlineData(20000, 8)]
     public async Task PublishAsync_WhenSendingManyEvents_TheEventsShouldBeSplitIntoBatches(int eventCount, int batches)
     {
         // Arrange
