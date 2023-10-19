@@ -12,7 +12,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workflows", "Workflows", "{FA5526B0-FEBF-4711-92BC-D4807610D610}"
 	ProjectSection(SolutionItems) = preProject
 		..\.github\workflows\nuget.yml = ..\.github\workflows\nuget.yml
+		..\.github\workflows\testrunner.yml = ..\.github\workflows\testrunner.yml
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{8D285140-815C-4CCF-961B-E81724C25B7E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +27,10 @@ Global
 		{0C815828-C6EF-46CC-A6C4-8F00D6AAC930}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0C815828-C6EF-46CC-A6C4-8F00D6AAC930}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0C815828-C6EF-46CC-A6C4-8F00D6AAC930}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D285140-815C-4CCF-961B-E81724C25B7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D285140-815C-4CCF-961B-E81724C25B7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D285140-815C-4CCF-961B-E81724C25B7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D285140-815C-4CCF-961B-E81724C25B7E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{FA5526B0-FEBF-4711-92BC-D4807610D610} = {A2B3D89E-4482-4A4D-8849-31456077DDF8}
