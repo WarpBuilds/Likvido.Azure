@@ -1,0 +1,21 @@
+name: "Test Runner"
+
+on:
+  pull_request:
+    branches:
+      - "main"
+  push:
+    branches:
+      - "main"
+
+jobs:
+  test-runner:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run tests
+        uses: likvido/action-test@v1
+        with:
+          test-target: src/Likvido.Azure.sln
+          framework: net7.0
+          logger: GitHubActions
