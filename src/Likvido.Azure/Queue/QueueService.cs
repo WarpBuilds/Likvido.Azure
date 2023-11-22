@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azure;
 using Azure.Storage.Queues;
+using Likvido.CloudEvents;
 using Newtonsoft.Json;
 using Polly;
 using Polly.Retry;
@@ -21,6 +22,35 @@ namespace Likvido.Azure.Queue
 
         public async Task SendAsync(
             string queueName,
+            IEnumerable<CloudEvent> cloudEvents,
+            TimeSpan? initialVisibilityDelay = null,
+            TimeSpan? timeToLive = null,
+            CancellationToken cancellationToken = default)
+        {
+            foreach (var cloudEvent in cloudEvents)
+            {
+                await SendAsync(queueName, cloudEvent, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        public async Task SendAsync(
+            string queueName,
+            CloudEvent cloudEvent,
+            TimeSpan? initialVisibilityDelay = null,
+            TimeSpan? timeToLive = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (!cloudEvent.Time.HasValue)
+            {
+                cloudEvent.Time = DateTime.UtcNow;
+            }
+
+            await SendMessageAsync(queueName, cloudEvent, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
+        }
+
+        [Obsolete("Please switch to sending messages in the CloudEvent format by using one of the other overloads")]
+        public async Task SendAsync(
+            string queueName,
             object message,
             TimeSpan? initialVisibilityDelay = null,
             TimeSpan? timeToLive = null,
@@ -29,6 +59,7 @@ namespace Likvido.Azure.Queue
             await SendMessageAsync(queueName, message, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
         }
 
+        [Obsolete("Please switch to sending messages in the CloudEvent format by using one of the other overloads")]
         public async Task SendAsync(
             string queueName,
             IEnumerable<object> messages,
@@ -49,7 +80,7 @@ namespace Likvido.Azure.Queue
             TimeSpan? timeToLive = null,
             CancellationToken cancellationToken = default)
         {
-            ResiliencePipeline pipeline = new ResiliencePipelineBuilder()
+            await new ResiliencePipelineBuilder()
                 .AddRetry(new RetryStrategyOptions
                 {
                     ShouldHandle = new PredicateBuilder().Handle<Exception>(),
@@ -57,9 +88,8 @@ namespace Likvido.Azure.Queue
                     MaxRetryAttempts = 3,
                     BackoffType = DelayBackoffType.Exponential
                 })
-                .Build();
-
-            await pipeline.ExecuteAsync(async _ =>
+                .Build()
+                .ExecuteAsync(async _ =>
                     {
                         var queue = _queueServiceClient.GetQueueClient(queueName);
                         try
