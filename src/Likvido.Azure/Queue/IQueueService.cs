@@ -36,5 +36,14 @@ namespace Likvido.Azure.Queue
             TimeSpan? initialVisibilityDelay = null,
             TimeSpan? timeToLive = null,
             CancellationToken cancellationToken = default);
+
+        Task SendAsync<T>(
+            string queueName,
+            string source,
+            string type,
+            T data,
+            TimeSpan? initialVisibilityDelay = null,
+            TimeSpan? timeToLive = null,
+            CancellationToken cancellationToken = default);
     }
 }

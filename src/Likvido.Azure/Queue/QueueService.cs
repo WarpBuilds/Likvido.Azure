@@ -33,6 +33,25 @@ namespace Likvido.Azure.Queue
             }
         }
 
+        public async Task SendAsync<T>(
+            string queueName,
+            string source,
+            string type,
+            T data,
+            TimeSpan? initialVisibilityDelay = null,
+            TimeSpan? timeToLive = null,
+            CancellationToken cancellationToken = default)
+        {
+            var cloudEvent = new CloudEvent<T>
+            {
+                Source = source,
+                Type = type,
+                Data = data
+            };
+
+            await SendAsync(queueName, cloudEvent, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
+        }
+
         public async Task SendAsync(
             string queueName,
             CloudEvent cloudEvent,
