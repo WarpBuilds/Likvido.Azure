@@ -13,6 +13,8 @@ jobs:
     runs-on: warpdev-ubuntu-latest-amd64-4x
 
     steps:
+      - name: Env check
+        run: echo $PATH && cat /etc/environment
       - name: Run tests
         uses: likvido/action-test@v1
         with:
