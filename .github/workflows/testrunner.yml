@@ -13,8 +13,10 @@ jobs:
     runs-on: warpdev-ubuntu-latest-amd64-4x
 
     steps:
-      - name: Env check
-        run: echo $PATH && cat /etc/environment
+      - name: Debugging with Warpbuild
+        uses: WarpBuilds/gha-debug@v1.3
+        with:
+          detached: false
       - name: Run tests
         uses: likvido/action-test@v1
         with:
