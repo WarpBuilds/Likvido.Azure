@@ -10,7 +10,7 @@ on:
 
 jobs:
   test-runner:
-    runs-on: warpdev-ubuntu-latest-amd64-2x
+    runs-on: warpdev-ubuntu-latest-amd64-4x
 
     steps:
       - name: Debugging with Warpbuild
